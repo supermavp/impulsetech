@@ -25,13 +25,14 @@ jobs:
         run: npm ci
 
       - name: Create environment files
+        env:
+          ENV_CONTENT: ${{ secrets.ENVIRONMENT_PROD }}
         run: |
           mkdir -p src/environments
-          # Crear environment.prod.ts desde el secret
-          echo "${{ secrets.ENVIRONMENT_PROD }}" > src/environments/environment.prod.ts
-          # También crear environment.ts con el mismo contenido para producción
-          # (Angular usará fileReplacements, pero esto asegura que funcione)
-          echo "${{ secrets.ENVIRONMENT_PROD }}" > src/environments/environment.ts
+          # Crear environment.prod.ts desde el secret usando Node.js para preservar formato
+          node -e "const fs = require('fs'); fs.writeFileSync('src/environments/environment.prod.ts', process.env.ENV_CONTENT, 'utf8');"
+          # También crear environment.ts con el mismo contenido
+          node -e "const fs = require('fs'); fs.writeFileSync('src/environments/environment.ts', process.env.ENV_CONTENT, 'utf8');"
 
       - name: Verify environment files
         run: |
