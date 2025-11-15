@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create environment.prod.ts
+        run: |
+          mkdir -p src/environments
+          echo '${{ secrets.ENVIRONMENT_PROD }}' > src/environments/environment.prod.ts
+
       - name: Build Angular app
         run: npm run build
         env:
