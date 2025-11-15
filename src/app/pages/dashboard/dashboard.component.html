@@ -1,0 +1,124 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <h1 class="text-2xl font-bold text-indigo-600">ImpulseTech</h1>
+        </div>
+        <div class="flex items-center gap-4">
+          <!-- Información del usuario -->
+          <div class="flex items-center gap-3">
+            @if (getUserPhoto()) {
+              <img 
+                [src]="getUserPhoto()" 
+                [alt]="getUserDisplayName()"
+                class="w-10 h-10 rounded-full"
+              />
+            } @else {
+              <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold">
+                {{ getUserDisplayName().charAt(0).toUpperCase() }}
+              </div>
+            }
+            <div class="hidden md:block">
+              <p class="text-sm font-medium text-gray-700">{{ getUserDisplayName() }}</p>
+              <p class="text-xs text-gray-500">{{ getUserEmail() }}</p>
+            </div>
+          </div>
+          <button
+            (click)="logout()"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Bienvenida -->
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 mb-8 text-white">
+      <h2 class="text-3xl font-bold mb-2">¡Bienvenido, {{ getUserDisplayName() }}! 👋</h2>
+      <p class="text-indigo-100">Has iniciado sesión correctamente en tu cuenta.</p>
+    </div>
+
+    <!-- Tarjetas de información -->
+    <div class="grid md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Estado de sesión</p>
+            <p class="text-2xl font-bold text-gray-800">Activa</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Proveedor</p>
+            <p class="text-2xl font-bold text-gray-800">
+              {{ getProviderName() }}
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Verificación</p>
+            <p class="text-2xl font-bold text-gray-800">
+              {{ currentUser()?.emailVerified ? 'Verificado' : 'Pendiente' }}
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Información del usuario -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Información de tu cuenta</h3>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+          <span class="text-gray-600">Email:</span>
+          <span class="font-medium text-gray-800">{{ getUserEmail() }}</span>
+        </div>
+        @if (currentUser()?.displayName) {
+          <div class="flex items-center justify-between py-3 border-b border-gray-200">
+            <span class="text-gray-600">Nombre:</span>
+            <span class="font-medium text-gray-800">{{ currentUser()?.displayName }}</span>
+          </div>
+        }
+        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+          <span class="text-gray-600">ID de usuario:</span>
+          <span class="font-mono text-sm text-gray-600">{{ currentUser()?.uid }}</span>
+        </div>
+        <div class="flex items-center justify-between py-3">
+          <span class="text-gray-600">Fecha de creación:</span>
+          <span class="font-medium text-gray-800">
+            {{ getCreationDate() }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
