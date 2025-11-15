@@ -112,15 +112,21 @@ export class AuthService {
     try {
       const userRef = doc(this.firestore, 'users', uid);
       // Convertir fechas a Timestamp para Firestore
+      const createdAtDate = userData.createdAt instanceof Date ? userData.createdAt : new Date();
       const dataToSave = {
-        ...userData,
-        createdAt: userData.createdAt instanceof Date ? userData.createdAt : new Date(),
-        updatedAt: new Date()
+        email: userData.email,
+        displayName: userData.displayName || '',
+        phone: userData.phone || '',
+        role: userData.role,
+        createdAt: Timestamp.fromDate(createdAtDate),
+        updatedAt: Timestamp.now()
       };
       await setDoc(userRef, dataToSave, { merge: true });
+      console.log(`Usuario ${uid} guardado correctamente en Firestore`);
     } catch (error) {
       console.error('Error al guardar datos del usuario:', error);
-      // No lanzamos el error para no interrumpir el registro
+      // Lanzamos el error para que pueda ser manejado por el código que llama
+      throw error;
     }
   }
   
@@ -136,16 +142,21 @@ export class AuthService {
         
         // Si el usuario no tiene rol asignado, actualizarlo en Firestore
         if (!data['role']) {
-          await updateDoc(userRef, {
-            role: 'student',
-            updatedAt: new Date()
-          });
+          try {
+            await updateDoc(userRef, {
+              role: 'student',
+              updatedAt: Timestamp.now()
+            });
+            console.log(`Rol asignado al usuario ${uid}`);
+          } catch (updateError) {
+            console.error(`Error al actualizar rol del usuario ${uid}:`, updateError);
+          }
         }
         
         this.currentUserData.set({
-          email: data['email'],
+          email: data['email'] || '',
           displayName: data['displayName'] || '',
-          phone: data['phone'],
+          phone: data['phone'] || '',
           role: userRole,
           createdAt: data['createdAt']?.toDate() || new Date(),
           updatedAt: data['updatedAt']?.toDate() || new Date()
@@ -154,18 +165,35 @@ export class AuthService {
         // Si no existe el documento, crear uno por defecto con rol student
         const user = this.currentUser();
         if (user) {
-          await this.saveUserData(uid, {
-            email: user.email || '',
-            displayName: user.displayName || '',
-            role: 'student',
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-          await this.loadUserData(uid);
+          console.log(`Creando documento para nuevo usuario Google: ${uid}`);
+          try {
+            await this.saveUserData(uid, {
+              email: user.email || '',
+              displayName: user.displayName || '',
+              role: 'student',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+            // Recargar los datos después de guardarlos
+            await this.loadUserData(uid);
+          } catch (saveError) {
+            console.error(`Error al guardar usuario ${uid}:`, saveError);
+            // Intentar establecer los datos en memoria aunque falle el guardado
+            this.currentUserData.set({
+              email: user.email || '',
+              displayName: user.displayName || '',
+              role: 'student',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
+        } else {
+          console.warn(`No se puede crear documento para ${uid}: usuario no está en currentUser`);
         }
       }
     } catch (error) {
       console.error('Error al cargar datos del usuario:', error);
+      // No lanzamos el error para no interrumpir el flujo de autenticación
     }
   }
   
@@ -245,25 +273,22 @@ export class AuthService {
       const credential = await signInWithPopup(this.auth, provider);
       this.currentUser.set(credential.user);
       
-      // Verificar si el usuario ya existe en Firestore
+      // loadUserData ya maneja la creación del documento si no existe
+      // y actualiza el currentUserData signal
       await this.loadUserData(credential.user.uid);
+      
+      // Obtener el rol después de cargar los datos
       const userData = this.currentUserData();
       
-      if (userData) {
+      if (userData && userData.role) {
         await this.redirectByRole(userData.role);
       } else {
-        // Si es un nuevo usuario con Google, asignar rol student por defecto
-        await this.saveUserData(credential.user.uid, {
-          email: credential.user.email || '',
-          displayName: credential.user.displayName || '',
-          role: 'student',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        await this.loadUserData(credential.user.uid);
+        // Si por alguna razón no hay rol, redirigir a student por defecto
+        console.warn('Usuario sin rol definido, asignando student por defecto');
         await this.redirectByRole('student');
       }
     } catch (error: any) {
+      console.error('Error en loginWithGoogle:', error);
       throw this.handleError(error);
     }
   }
