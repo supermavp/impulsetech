@@ -24,10 +24,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create environment.prod.ts
+      - name: Create environment files
         run: |
           mkdir -p src/environments
-          echo '${{ secrets.ENVIRONMENT_PROD }}' > src/environments/environment.prod.ts
+          # Crear environment.prod.ts desde el secret
+          echo "${{ secrets.ENVIRONMENT_PROD }}" > src/environments/environment.prod.ts
+          # También crear environment.ts con el mismo contenido para producción
+          # (Angular usará fileReplacements, pero esto asegura que funcione)
+          echo "${{ secrets.ENVIRONMENT_PROD }}" > src/environments/environment.ts
+
+      - name: Verify environment files
+        run: |
+          if [ ! -f src/environments/environment.prod.ts ]; then
+            echo "❌ Error: environment.prod.ts no se creó"
+            exit 1
+          fi
+          if [ ! -f src/environments/environment.ts ]; then
+            echo "❌ Error: environment.ts no se creó"
+            exit 1
+          fi
+          echo "✅ Archivos creados correctamente"
+          echo "Tamaño environment.prod.ts: $(wc -c < src/environments/environment.prod.ts) bytes"
+          echo "Tamaño environment.ts: $(wc -c < src/environments/environment.ts) bytes"
+          echo "Verificando formato:"
+          head -n 2 src/environments/environment.ts | grep -q "export const environment" && echo "✅ Formato correcto" || echo "❌ Formato incorrecto"
 
       - name: Build Angular app
         run: npm run build
