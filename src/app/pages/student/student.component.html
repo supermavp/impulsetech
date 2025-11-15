@@ -1,0 +1,196 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Panel de Estudiante</h1>
+          <p class="text-sm text-gray-600 mt-1">Bienvenido, {{ getUserDisplayName() }}</p>
+        </div>
+        <button
+          (click)="logout()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Tabs -->
+    <div class="mb-6 border-b border-gray-200">
+      <nav class="flex space-x-8">
+        <button
+          (click)="showAvailableCourses.set(true)"
+          class="py-4 px-1 border-b-2 font-medium text-sm"
+          [class.border-indigo-500]="showAvailableCourses()"
+          [class.text-indigo-600]="showAvailableCourses()"
+          [class.border-transparent]="!showAvailableCourses()"
+          [class.text-gray-500]="!showAvailableCourses()"
+        >
+          Cursos Disponibles
+        </button>
+        <button
+          (click)="showAvailableCourses.set(false)"
+          class="py-4 px-1 border-b-2 font-medium text-sm"
+          [class.border-indigo-500]="!showAvailableCourses()"
+          [class.text-indigo-600]="!showAvailableCourses()"
+          [class.border-transparent]="showAvailableCourses()"
+          [class.text-gray-500]="showAvailableCourses()"
+        >
+          Mis Cursos ({{ enrollments().length }})
+        </button>
+      </nav>
+    </div>
+
+    @if (showAvailableCourses()) {
+      <!-- Cursos Disponibles -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (course of courses(); track course.id) {
+          <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+            <div class="p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ course.title }}</h3>
+              <p class="text-sm text-gray-600 mb-4 line-clamp-3">{{ course.description }}</p>
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-xs text-gray-500">Profesor: {{ course.teacherName }}</span>
+                @if (isEnrolled(course.id)) {
+                  <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Inscrito</span>
+                }
+              </div>
+              @if (isEnrolled(course.id)) {
+                @if (getEnrollmentGrade(course.id) !== undefined) {
+                  <div class="mb-4">
+                    <p class="text-sm text-gray-700">Calificación: <span class="font-semibold text-indigo-600">{{ getEnrollmentGrade(course.id) }}/100</span></p>
+                  </div>
+                }
+                <button
+                  (click)="selectCourse(course)"
+                  class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                >
+                  Ver Curso
+                </button>
+              } @else {
+                <button
+                  (click)="enrollInCourse(course.id!)"
+                  class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  Inscribirse
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Mis Cursos -->
+      @if (enrollments().length === 0) {
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+          <p class="text-gray-500">No estás inscrito en ningún curso aún</p>
+          <button
+            (click)="showAvailableCourses.set(true)"
+            class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Ver Cursos Disponibles
+          </button>
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (enrollment of enrollments(); track enrollment.id) {
+            @for (course of courses(); track course.id) {
+              @if (course.id === enrollment.courseId) {
+                <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+                  <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ course.title }}</h3>
+                    <p class="text-sm text-gray-600 mb-4 line-clamp-3">{{ course.description }}</p>
+                    <div class="flex items-center justify-between mb-4">
+                      <span class="text-xs text-gray-500">Profesor: {{ course.teacherName }}</span>
+                      @if (enrollment.grade !== undefined) {
+                        <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded">Calificación: {{ enrollment.grade }}/100</span>
+                      } @else {
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Sin calificar</span>
+                      }
+                    </div>
+                    <div class="mb-4">
+                      <div class="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Progreso</span>
+                        <span>{{ enrollment.progress }}%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          class="bg-indigo-600 h-2 rounded-full transition-all"
+                          [style.width.%]="enrollment.progress"
+                        ></div>
+                      </div>
+                    </div>
+                    <button
+                      (click)="selectCourse(course)"
+                      class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                    >
+                      Ver Curso
+                    </button>
+                  </div>
+                </div>
+              }
+            }
+          }
+        </div>
+      }
+    }
+
+    <!-- Modal: Detalles del Curso -->
+    @if (selectedCourse()) {
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-semibold text-gray-900">{{ selectedCourse()?.title }}</h2>
+              <button
+                (click)="selectedCourse.set(null)"
+                class="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <p class="text-gray-600 mb-6">{{ selectedCourse()?.description }}</p>
+            
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Lecciones</h3>
+            @if (lessons().length === 0) {
+              <p class="text-gray-500">Este curso aún no tiene lecciones</p>
+            } @else {
+              <div class="space-y-4">
+                @for (lesson of lessons(); track lesson.id) {
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <h4 class="font-semibold text-gray-900">{{ lesson.title }}</h4>
+                      <span class="text-xs text-gray-500">Lección {{ lesson.order }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">{{ lesson.description }}</p>
+                    <div class="bg-gray-50 rounded p-3 text-sm text-gray-700">
+                      {{ lesson.content }}
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Área de Evaluación (básico) -->
+            <div class="mt-8 border-t border-gray-200 pt-6">
+              <h3 class="text-xl font-semibold text-gray-900 mb-4">Evaluación</h3>
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-gray-600 mb-4">Aquí puedes realizar evaluaciones relacionadas con este curso.</p>
+                <button
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Iniciar Evaluación
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </main>
+</div>
+

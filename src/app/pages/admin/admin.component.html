@@ -1,0 +1,207 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Panel de Administración</h1>
+          <p class="text-sm text-gray-600 mt-1">Bienvenido, {{ getUserDisplayName() }}</p>
+        </div>
+        <button
+          (click)="logout()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Total de Cursos</h3>
+        <p class="text-3xl font-bold text-gray-900">{{ totalCourses() }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Usuarios Activos</h3>
+        <p class="text-3xl font-bold text-gray-900">{{ totalUsers() }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Rol</h3>
+        <p class="text-lg font-semibold text-indigo-600">Administrador</p>
+      </div>
+    </div>
+
+    <!-- Cursos -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Todos los Cursos</h2>
+      </div>
+      <div class="p-6">
+        @if (courses().length === 0) {
+          <p class="text-gray-500 text-center py-8">No hay cursos disponibles aún</p>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @for (course of courses(); track course.id) {
+              <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <h3 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h3>
+                <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ course.description }}</p>
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                  <span>Profesor: {{ course.teacherName }}</span>
+                  <span>{{ course.createdAt | date: 'short' }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Funcionalidades Administrativas -->
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Acciones Disponibles</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-gray-200 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">Gestionar Usuarios</h3>
+          <p class="text-sm text-gray-600 mb-4">Administrar usuarios, roles y permisos</p>
+          <button
+            (click)="showUserManagement.set(!showUserManagement())"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+          >
+            {{ showUserManagement() ? 'Ocultar' : 'Gestionar' }}
+          </button>
+        </div>
+        <div class="border border-gray-200 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">Gestionar Cursos</h3>
+          <p class="text-sm text-gray-600 mb-4">Ver, editar y eliminar todos los cursos</p>
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+            Gestionar
+          </button>
+        </div>
+        <div class="border border-gray-200 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">Configuración</h3>
+          <p class="text-sm text-gray-600 mb-4">Configurar la plataforma</p>
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+            Configurar
+          </button>
+        </div>
+        <div class="border border-gray-200 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">Reportes</h3>
+          <p class="text-sm text-gray-600 mb-4">Ver reportes y estadísticas</p>
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+            Ver Reportes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gestión de Usuarios -->
+    @if (showUserManagement()) {
+      <div class="mt-8 bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-900">Gestión de Usuarios</h2>
+          <p class="text-sm text-gray-600 mt-1">Convierte estudiantes en profesores cambiando su rol</p>
+        </div>
+        <div class="p-6">
+          @if (users().length === 0) {
+            <p class="text-gray-500 text-center py-8">No hay usuarios registrados</p>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol Actual</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Registro</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  @for (user of users(); track user.id) {
+                    <tr>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">{{ user.displayName || 'Sin nombre' }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-500">{{ user.email }}</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ getRoleBadgeClass(user.role) }}">
+                          {{ getRoleLabel(user.role) }}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ user.createdAt | date: 'short' }}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        @if (user.role === 'student') {
+                          <button
+                            (click)="updateUserRole(user.id, 'teacher')"
+                            [disabled]="isUpdatingRole() === user.id"
+                            class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400 transition-colors text-xs"
+                          >
+                            @if (isUpdatingRole() === user.id) {
+                              Actualizando...
+                            } @else {
+                              Convertir a Profesor
+                            }
+                          </button>
+                        } @else if (user.role === 'teacher') {
+                          <button
+                            (click)="updateUserRole(user.id, 'student')"
+                            [disabled]="isUpdatingRole() === user.id"
+                            class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:bg-gray-400 transition-colors text-xs"
+                          >
+                            @if (isUpdatingRole() === user.id) {
+                              Actualizando...
+                            } @else {
+                              Convertir a Estudiante
+                            }
+                          </button>
+                        } @else {
+                          <span class="text-gray-400 text-xs">Admin</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Migración de Usuarios -->
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Migración de Usuarios</h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Si tienes usuarios existentes sin rol asignado, puedes ejecutar esta migración para asignarles el rol "student" por defecto.
+        Los usuarios también se actualizarán automáticamente cuando inicien sesión.
+      </p>
+      @if (migrationResult()) {
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p class="text-sm text-green-800">
+            Migración completada: {{ migrationResult()?.updated }} usuarios actualizados, {{ migrationResult()?.errors }} errores
+          </p>
+        </div>
+      }
+      <button
+        (click)="migrateUsers()"
+        [disabled]="isMigrating()"
+        class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-yellow-400 transition-colors text-sm"
+      >
+        @if (isMigrating()) {
+          Migrando...
+        } @else {
+          Migrar Usuarios sin Rol
+        }
+      </button>
+    </div>
+  </main>
+</div>
+

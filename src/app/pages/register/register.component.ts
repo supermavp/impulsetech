@@ -2,7 +2,7 @@ import { Component, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -55,7 +55,8 @@ export class RegisterComponent {
 
     try {
       const { name, email, phone, password } = this.registerForm.value;
-      await this.authService.register(email, password, name, phone);
+      // Todos los usuarios que se registran tienen rol 'student' por defecto
+      await this.authService.register(email, password, 'student', name, phone);
       // La navegación se maneja en el servicio
     } catch (error: any) {
       this.errorMessage.set(error);

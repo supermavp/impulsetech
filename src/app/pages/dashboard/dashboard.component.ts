@@ -20,10 +20,44 @@ export class DashboardComponent {
 
   constructor() {
     // Suscribirse a los cambios del usuario
-    this.authService.user$.subscribe(user => {
+    this.authService.user$.subscribe(async user => {
       this.currentUser.set(user);
       if (!user) {
         this.router.navigate(['/login']);
+      } else {
+        // Redirigir según el rol
+        const userData = this.authService.currentUserData();
+        if (userData) {
+          switch (userData.role) {
+            case 'admin':
+              await this.router.navigate(['/admin']);
+              break;
+            case 'teacher':
+              await this.router.navigate(['/teacher']);
+              break;
+            case 'student':
+              await this.router.navigate(['/student']);
+              break;
+          }
+        } else {
+          // Si no hay datos del usuario aún, esperar un momento
+          setTimeout(async () => {
+            const userData = this.authService.currentUserData();
+            if (userData) {
+              switch (userData.role) {
+                case 'admin':
+                  await this.router.navigate(['/admin']);
+                  break;
+                case 'teacher':
+                  await this.router.navigate(['/teacher']);
+                  break;
+                case 'student':
+                  await this.router.navigate(['/student']);
+                  break;
+              }
+            }
+          }, 1000);
+        }
       }
     });
   }

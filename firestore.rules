@@ -2,20 +2,83 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Colección de usuarios
-    // Cada usuario solo puede leer y escribir sus propios datos
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Helper function para obtener el rol del usuario
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
     
-    // Si necesitas otras colecciones en el futuro, agrégalas aquí
-    // Ejemplo:
-    // match /posts/{postId} {
-    //   allow read: if request.auth != null;
-    //   allow create: if request.auth != null;
-    //   allow update, delete: if request.auth != null && 
-    //     request.resource.data.userId == request.auth.uid;
-    // }
+    function isAdmin() {
+      return request.auth != null && getUserRole() == 'admin';
+    }
+    
+    function isTeacher() {
+      return request.auth != null && (getUserRole() == 'teacher' || isAdmin());
+    }
+    
+    function isStudent() {
+      return request.auth != null && getUserRole() == 'student';
+    }
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Colección de usuarios
+    match /users/{userId} {
+      // Los usuarios pueden leer sus propios datos
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // Los usuarios pueden escribir sus propios datos (excepto rol)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId && 
+        (!('role' in request.resource.data.diff(resource.data)) || isAdmin());
+      // Solo admin puede eliminar usuarios
+      allow delete: if isAdmin();
+      // Admin puede leer y escribir todos los usuarios
+      allow read, write: if isAdmin();
+    }
+    
+    // Colección de cursos
+    match /courses/{courseId} {
+      // Todos los usuarios autenticados pueden leer cursos activos
+      allow read: if isAuthenticated() && (resource.data.isActive == true || isAdmin());
+      // Solo teachers y admin pueden crear cursos
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      // Solo el profesor del curso o admin pueden actualizar
+      allow update: if isTeacher() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      // Solo admin puede eliminar cursos
+      allow delete: if isAdmin();
+    }
+    
+    // Colección de lecciones
+    match /lessons/{lessonId} {
+      // Todos los usuarios autenticados pueden leer lecciones
+      allow read: if isAuthenticated();
+      // Solo teachers y admin pueden crear lecciones
+      allow create: if isTeacher();
+      // Solo teachers y admin pueden actualizar
+      allow update: if isTeacher();
+      // Solo admin puede eliminar
+      allow delete: if isAdmin();
+    }
+    
+    // Colección de inscripciones
+    match /enrollments/{enrollmentId} {
+      // Los estudiantes pueden leer sus propias inscripciones
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        isAdmin()
+      );
+      // Los estudiantes pueden inscribirse en cursos
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+      // Los teachers pueden actualizar calificaciones y progreso
+      allow update: if isTeacher() && (
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        isAdmin()
+      );
+      // Solo admin puede eliminar inscripciones
+      allow delete: if isAdmin();
+    }
     
     // Por defecto, denegar todo lo demás
     match /{document=**} {
