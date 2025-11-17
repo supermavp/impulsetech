@@ -19,7 +19,46 @@
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    @if (viewingLesson() && selectedLesson()) {
+      <!-- Vista de Lección (Pantalla Completa) -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center gap-4">
+            <button
+              (click)="closeLesson()"
+              class="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="Volver al curso"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <div class="flex-1">
+              <h2 class="text-2xl font-semibold text-gray-900">{{ selectedLesson()?.title }}</h2>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-sm text-gray-500">Lección {{ selectedLesson()?.order }}</span>
+                <button
+                  (click)="editLesson(selectedLesson()!)"
+                  class="ml-4 px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-xs"
+                >
+                  Editar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="max-w-4xl mx-auto px-6 py-8">
+          <div class="prose prose-lg max-w-none">
+            <p class="text-gray-700 mb-6 text-lg">{{ selectedLesson()?.description }}</p>
+            
+            <div class="bg-gray-50 rounded-lg p-6 text-gray-900" [innerHTML]="renderMarkdown(selectedLesson()?.content)">
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Columna izquierda: Cursos -->
       <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow mb-6">
@@ -97,18 +136,105 @@
               </div>
             </div>
 
-            <!-- Crear lección -->
+            <!-- Lecciones del curso -->
             <div class="bg-white rounded-lg shadow">
-              <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="font-semibold text-gray-900">Agregar Lección</h3>
-              </div>
-              <div class="p-4">
+              <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-900">Lecciones</h3>
                 <button
                   (click)="showCreateLesson.set(true)"
-                  class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs"
                 >
-                  + Nueva Lección
+                  + Nueva
                 </button>
+              </div>
+              <div class="p-4 max-h-96 overflow-y-auto">
+                @if (lessons().length === 0) {
+                  <p class="text-sm text-gray-500 text-center py-4">No hay lecciones aún</p>
+                } @else {
+                  <div class="space-y-3">
+                    @for (lesson of lessons(); track lesson.id) {
+                      <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                        <div 
+                          class="flex items-center justify-between mb-2 cursor-pointer"
+                          (click)="viewLesson(lesson)"
+                        >
+                          <div class="flex-1">
+                            <h4 class="text-sm font-semibold text-gray-900">{{ lesson.title }}</h4>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ lesson.description }}</p>
+                          </div>
+                          <span class="text-xs text-gray-400 ml-2">#{{ lesson.order }}</span>
+                          <svg class="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                          </svg>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                          <button
+                            (click)="editLesson(lesson); $event.stopPropagation()"
+                            class="flex-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-xs"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            (click)="deleteLesson(lesson.id!); $event.stopPropagation()"
+                            class="flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Evaluaciones del curso -->
+            <div class="bg-white rounded-lg shadow">
+              <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-900">Evaluaciones</h3>
+                <button
+                  (click)="showCreateQuiz.set(true)"
+                  class="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs"
+                >
+                  + Nueva
+                </button>
+              </div>
+              <div class="p-4 max-h-96 overflow-y-auto">
+                @if (quizzes().length === 0) {
+                  <p class="text-sm text-gray-500 text-center py-4">No hay evaluaciones aún</p>
+                } @else {
+                  <div class="space-y-3">
+                    @for (quiz of quizzes(); track quiz.id) {
+                      <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex-1">
+                            <h4 class="text-sm font-semibold text-gray-900">{{ quiz.title }}</h4>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ quiz.description }}</p>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                          <span>{{ quiz.questions.length }} preguntas</span>
+                          <span>{{ quiz.totalPoints }} puntos</span>
+                          <span>Mín: {{ quiz.passingScore }}%</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                          <button
+                            (click)="editQuiz(quiz)"
+                            class="flex-1 px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-xs"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            (click)="deleteQuiz(quiz.id!)"
+                            class="flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -119,6 +245,7 @@
         }
       </div>
     </div>
+    }
   </main>
 
   <!-- Modal: Crear Curso -->
@@ -165,12 +292,14 @@
     </div>
   }
 
-  <!-- Modal: Crear Lección -->
-  @if (showCreateLesson()) {
+  <!-- Modal: Crear/Editar Lección -->
+  @if (showCreateLesson() || showEditLesson()) {
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Crear Nueva Lección</h3>
-        <form [formGroup]="lessonForm" (ngSubmit)="createLesson()">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">
+          {{ showEditLesson() ? 'Editar Lección' : 'Crear Nueva Lección' }}
+        </h3>
+        <form [formGroup]="lessonForm" (ngSubmit)="showEditLesson() ? updateLesson() : createLesson()">
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Título</label>
             <input
@@ -188,12 +317,21 @@
             ></textarea>
           </div>
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Contenido</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Contenido (Markdown)
+              <span class="text-xs text-gray-500 font-normal ml-2">
+                - Usa **texto** para negrita, *texto* para cursiva
+              </span>
+            </label>
             <textarea
               formControlName="content"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              rows="10"
+              placeholder="Puedes usar Markdown para formatear el contenido:&#10;&#10;## Subtítulos&#10;**Negrita** o *cursiva*&#10;- Listas&#10;1. Numeradas&#10;&#10;Ejemplo:&#10;## Introducción&#10;Este es el **contenido** de la lección con formato."
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
             ></textarea>
+            <p class="text-xs text-gray-500 mt-1">
+              💡 Tip: Puedes usar encabezados (#), listas (-), negrita (**), y más. <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" class="text-indigo-600 hover:underline">Ver guía de Markdown</a>
+            </p>
           </div>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Orden</label>
@@ -206,7 +344,7 @@
           <div class="flex gap-3">
             <button
               type="button"
-              (click)="showCreateLesson.set(false)"
+              (click)="showEditLesson() ? cancelEditLesson() : showCreateLesson.set(false)"
               class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
               Cancelar
@@ -215,10 +353,174 @@
               type="submit"
               class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              Crear
+              {{ showEditLesson() ? 'Actualizar' : 'Crear' }}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: Crear/Editar Evaluación -->
+  @if (showCreateQuiz() || showEditQuiz()) {
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <h3 class="text-xl font-semibold text-gray-900 mb-4">
+            {{ showEditQuiz() ? 'Editar Evaluación' : 'Crear Nueva Evaluación' }}
+          </h3>
+          <form [formGroup]="quizForm" (ngSubmit)="createQuiz()">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Título</label>
+              <input
+                type="text"
+                formControlName="title"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+              <textarea
+                formControlName="description"
+                rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              ></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Puntuación Mínima (%)</label>
+                <input
+                  type="number"
+                  formControlName="passingScore"
+                  min="0"
+                  max="100"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tiempo Límite (min, opcional)</label>
+                <input
+                  type="number"
+                  formControlName="timeLimit"
+                  min="1"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-gray-700">Preguntas</label>
+                <button
+                  type="button"
+                  (click)="addQuizQuestion()"
+                  class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
+                >
+                  + Agregar Pregunta
+                </button>
+              </div>
+              <div class="space-y-4">
+                @for (question of quizQuestions(); track $index) {
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="text-sm font-medium text-gray-700">Pregunta {{ $index + 1 }}</span>
+                      <button
+                        type="button"
+                        (click)="removeQuizQuestion($index)"
+                        class="text-red-600 hover:text-red-700 text-sm"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                    <div class="mb-3">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Pregunta</label>
+                      <textarea
+                        [(ngModel)]="question.question"
+                        [ngModelOptions]="{standalone: true}"
+                        rows="2"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Escribe la pregunta aquí..."
+                      ></textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                      <select
+                        [(ngModel)]="question.type"
+                        [ngModelOptions]="{standalone: true}"
+                        (change)="updateQuestionType($index, $any($event.target).value)"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="multiple-choice">Múltiple Opción</option>
+                        <option value="text">Texto Libre</option>
+                      </select>
+                    </div>
+                    @if (question.type === 'multiple-choice') {
+                      <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Opciones</label>
+                        @for (option of question.options; track $index) {
+                          <div class="flex items-center gap-2 mb-2">
+                            <input
+                              type="radio"
+                              [name]="'correct-' + $index"
+                              [value]="$index"
+                              [(ngModel)]="question.correctAnswer"
+                              [ngModelOptions]="{standalone: true}"
+                              class="mr-2"
+                            />
+                            <input
+                              type="text"
+                              [(ngModel)]="question.options[$index]"
+                              [ngModelOptions]="{standalone: true}"
+                              placeholder="Opción {{ $index + 1 }}"
+                              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Respuesta Correcta</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="question.correctAnswer"
+                          [ngModelOptions]="{standalone: true}"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          placeholder="Escribe la respuesta correcta..."
+                        />
+                      </div>
+                    }
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Puntos</label>
+                      <input
+                        type="number"
+                        [(ngModel)]="question.points"
+                        [ngModelOptions]="{standalone: true}"
+                        min="1"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                type="button"
+                (click)="showEditQuiz() ? cancelEditQuiz() : cancelCreateQuiz()"
+                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                {{ showEditQuiz() ? 'Actualizar Evaluación' : 'Crear Evaluación' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   }

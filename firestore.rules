@@ -39,8 +39,14 @@ service cloud.firestore {
     
     // Colección de cursos
     match /courses/{courseId} {
+      // Los profesores pueden leer sus propios cursos (activos o no)
       // Todos los usuarios autenticados pueden leer cursos activos
-      allow read: if isAuthenticated() && (resource.data.isActive == true || isAdmin());
+      // Los admins pueden leer todos los cursos
+      allow read: if isAuthenticated() && (
+        resource.data.teacherId == request.auth.uid || 
+        resource.data.isActive == true || 
+        isAdmin()
+      );
       // Solo teachers y admin pueden crear cursos
       allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
       // Solo el profesor del curso o admin pueden actualizar
@@ -51,14 +57,23 @@ service cloud.firestore {
     
     // Colección de lecciones
     match /lessons/{lessonId} {
-      // Todos los usuarios autenticados pueden leer lecciones
-      allow read: if isAuthenticated();
+      // Los profesores pueden leer lecciones de sus propios cursos
+      // Todos los usuarios autenticados pueden leer lecciones de cursos activos
+      // Los admins pueden leer todas las lecciones
+      allow read: if isAuthenticated() && (
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.isActive == true ||
+        isAdmin()
+      );
       // Solo teachers y admin pueden crear lecciones
       allow create: if isTeacher();
       // Solo teachers y admin pueden actualizar
       allow update: if isTeacher();
-      // Solo admin puede eliminar
-      allow delete: if isAdmin();
+      // Los teachers pueden eliminar lecciones de sus propios cursos, admins pueden eliminar todas
+      allow delete: if isTeacher() && (
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        isAdmin()
+      );
     }
     
     // Colección de inscripciones
@@ -78,6 +93,54 @@ service cloud.firestore {
       );
       // Solo admin puede eliminar inscripciones
       allow delete: if isAdmin();
+    }
+
+    // Colección de completado de lecciones
+    match /lessonCompletions/{completionId} {
+      // Los estudiantes pueden leer sus propias completaciones
+      // Los profesores pueden leer completaciones de sus cursos
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        isAdmin()
+      );
+      // Los estudiantes pueden crear sus propias completaciones
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+      // Nadie puede actualizar o eliminar completaciones (son registros históricos)
+      allow update, delete: if false;
+    }
+
+    // Colección de evaluaciones
+    match /quizzes/{quizId} {
+      // Los profesores pueden leer evaluaciones de sus cursos
+      // Los estudiantes pueden leer evaluaciones activas
+      // Los admins pueden leer todas las evaluaciones
+      allow read: if isAuthenticated() && (
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        resource.data.isActive == true ||
+        isAdmin()
+      );
+      // Solo teachers y admin pueden crear evaluaciones
+      allow create: if isTeacher();
+      // Solo teachers y admin pueden actualizar evaluaciones
+      allow update: if isTeacher();
+      // Solo teachers y admin pueden eliminar evaluaciones
+      allow delete: if isTeacher();
+    }
+
+    // Colección de respuestas a evaluaciones
+    match /quizSubmissions/{submissionId} {
+      // Los estudiantes pueden leer sus propias respuestas
+      // Los profesores pueden leer respuestas de evaluaciones de sus cursos
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid ||
+        isAdmin()
+      );
+      // Los estudiantes pueden crear respuestas a evaluaciones
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+      // Nadie puede actualizar o eliminar respuestas (son registros históricos)
+      allow update, delete: if false;
     }
     
     // Por defecto, denegar todo lo demás

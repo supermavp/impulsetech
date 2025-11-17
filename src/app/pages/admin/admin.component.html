@@ -35,31 +35,6 @@
       </div>
     </div>
 
-    <!-- Cursos -->
-    <div class="bg-white rounded-lg shadow">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-xl font-semibold text-gray-900">Todos los Cursos</h2>
-      </div>
-      <div class="p-6">
-        @if (courses().length === 0) {
-          <p class="text-gray-500 text-center py-8">No hay cursos disponibles aún</p>
-        } @else {
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            @for (course of courses(); track course.id) {
-              <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <h3 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h3>
-                <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ course.description }}</p>
-                <div class="flex items-center justify-between text-xs text-gray-500">
-                  <span>Profesor: {{ course.teacherName }}</span>
-                  <span>{{ course.createdAt | date: 'short' }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    </div>
-
     <!-- Funcionalidades Administrativas -->
     <div class="mt-8 bg-white rounded-lg shadow p-6">
       <h2 class="text-xl font-semibold text-gray-900 mb-4">Acciones Disponibles</h2>
@@ -77,8 +52,11 @@
         <div class="border border-gray-200 rounded-lg p-4">
           <h3 class="font-semibold text-gray-900 mb-2">Gestionar Cursos</h3>
           <p class="text-sm text-gray-600 mb-4">Ver, editar y eliminar todos los cursos</p>
-          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
-            Gestionar
+          <button
+            (click)="showCourseManagement.set(!showCourseManagement())"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+          >
+            {{ showCourseManagement() ? 'Ocultar' : 'Gestionar' }}
           </button>
         </div>
         <div class="border border-gray-200 rounded-lg p-4">
@@ -97,6 +75,161 @@
         </div>
       </div>
     </div>
+
+    <!-- Gestión de Cursos -->
+    @if (showCourseManagement()) {
+      <div class="mt-8 bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">Gestión de Cursos</h2>
+              <p class="text-sm text-gray-600 mt-1">Ver y administrar todos los cursos del sistema</p>
+            </div>
+            @if (selectedCourse()) {
+              <button
+                (click)="closeCourseManagement()"
+                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                Volver a Cursos
+              </button>
+            }
+          </div>
+        </div>
+        <div class="p-6">
+          @if (!selectedCourse()) {
+            <!-- Lista de cursos -->
+            @if (courses().length === 0) {
+              <p class="text-gray-500 text-center py-8">No hay cursos disponibles aún</p>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @for (course of courses(); track course.id) {
+                  <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" (click)="selectCourse(course)">
+                    <h3 class="font-semibold text-gray-900 mb-2">{{ course.title }}</h3>
+                    <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ course.description }}</p>
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                      <span>Profesor: {{ course.teacherName }}</span>
+                      <span>{{ course.createdAt | date: 'short' }}</span>
+                    </div>
+                    <button
+                      (click)="selectCourse(course); $event.stopPropagation()"
+                      class="w-full px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-sm"
+                    >
+                      Ver Lecciones
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          } @else if (viewingLesson() && selectedLesson()) {
+            <!-- Vista de Lección (Pantalla Completa) -->
+            <div class="bg-white rounded-lg shadow">
+              <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-4">
+                  <button
+                    (click)="closeLesson()"
+                    class="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    title="Volver a lecciones"
+                  >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                  </button>
+                  <div class="flex-1">
+                    <h2 class="text-2xl font-semibold text-gray-900">{{ selectedLesson()?.title }}</h2>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-sm text-gray-500">Lección {{ selectedLesson()?.order }}</span>
+                      <button
+                        (click)="editLesson(selectedLesson()!)"
+                        class="ml-4 px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-xs"
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="max-w-4xl mx-auto px-6 py-8">
+                <div class="prose prose-lg max-w-none">
+                  <p class="text-gray-700 mb-6 text-lg">{{ selectedLesson()?.description }}</p>
+                  
+                  <div class="bg-gray-50 rounded-lg p-6 text-gray-900" [innerHTML]="renderMarkdown(selectedLesson()?.content)">
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <!-- Vista de curso con lista de lecciones -->
+            <div class="mb-6 border-b border-gray-200 pb-4">
+              <div class="flex items-center gap-4">
+                <button
+                  (click)="selectedCourse.set(null)"
+                  class="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  title="Volver a cursos"
+                >
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                  </svg>
+                </button>
+                <div>
+                  <h2 class="text-2xl font-semibold text-gray-900">{{ selectedCourse()?.title }}</h2>
+                  <p class="text-sm text-gray-600 mt-1">Profesor: {{ selectedCourse()?.teacherName }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <button
+                (click)="showCreateLesson.set(true)"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
+                + Nueva Lección
+              </button>
+            </div>
+
+            @if (lessons().length === 0) {
+              <p class="text-gray-500 text-center py-8">Este curso no tiene lecciones aún</p>
+            } @else {
+              <div class="space-y-3">
+                @for (lesson of lessons(); track lesson.id) {
+                  <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div 
+                      class="flex items-center justify-between mb-2 cursor-pointer"
+                      (click)="viewLesson(lesson)"
+                    >
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h4 class="font-semibold text-gray-900">{{ lesson.title }}</h4>
+                          <span class="text-xs text-gray-500">Lección {{ lesson.order }}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 line-clamp-2">{{ lesson.description }}</p>
+                      </div>
+                      <svg class="w-5 h-5 text-gray-400 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                      <button
+                        (click)="editLesson(lesson); $event.stopPropagation()"
+                        class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-xs"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        (click)="deleteLesson(lesson.id!); $event.stopPropagation()"
+                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
 
     <!-- Gestión de Usuarios -->
     @if (showUserManagement()) {
@@ -202,6 +335,67 @@
         }
       </button>
     </div>
+
+
+    <!-- Modal: Crear/Editar Lección -->
+    @if (showCreateLesson() || showEditLesson()) {
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+          <h3 class="text-xl font-semibold text-gray-900 mb-4">
+            {{ showEditLesson() ? 'Editar Lección' : 'Crear Nueva Lección' }}
+          </h3>
+          <form [formGroup]="lessonForm" (ngSubmit)="showEditLesson() ? updateLesson() : createLesson()">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Título</label>
+              <input
+                type="text"
+                formControlName="title"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+              <textarea
+                formControlName="description"
+                rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              ></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Contenido</label>
+              <textarea
+                formControlName="content"
+                rows="6"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              ></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Orden</label>
+              <input
+                type="number"
+                formControlName="order"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                (click)="showEditLesson() ? cancelEditLesson() : showCreateLesson.set(false)"
+                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                {{ showEditLesson() ? 'Actualizar' : 'Crear' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
   </main>
 </div>
 

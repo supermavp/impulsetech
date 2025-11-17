@@ -41,7 +41,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "650kB",
                   "maximumError": "1MB"
                 },
                 {
@@ -53,9 +53,13 @@
               "outputHashing": "all"
             },
             "development": {
-              "optimization": false,
+              "optimization": {
+                "scripts": false,
+                "styles": false
+              },
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "outputHashing": "none"
             }
           },
           "defaultConfiguration": "production"
