@@ -110,25 +110,66 @@
                 } @else {
                   <div class="space-y-3">
                     @for (enrollment of enrollments(); track enrollment.id) {
-                      <div class="border border-gray-200 rounded-lg p-3">
+                      @let summary = getStudentQuizSummary(enrollment.studentId);
+                      @let finalGrade = getStudentGrade(enrollment);
+                      <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
                         <div class="flex items-center justify-between mb-2">
                           <span class="text-sm font-medium text-gray-900">{{ enrollment.studentName }}</span>
-                          @if (enrollment.grade !== undefined) {
-                            <span class="text-sm font-semibold text-indigo-600">{{ enrollment.grade }}/100</span>
+                          @if (finalGrade !== null) {
+                            <span class="text-sm font-semibold" [class.text-indigo-600]="!enrollment.grade" [class.text-green-600]="enrollment.grade">
+                              {{ finalGrade }}/100
+                              @if (!enrollment.grade) {
+                                <span class="text-xs text-gray-500 ml-1">(auto)</span>
+                              }
+                            </span>
+                          } @else {
+                            <span class="text-xs text-gray-500">Sin evaluaciones</span>
                           }
                         </div>
-                        <div class="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            [value]="enrollment.grade || ''"
-                            (blur)="onGradeBlur(enrollment.id, $event)"
-                            placeholder="Calificación"
-                            class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                          />
-                          <span class="text-xs text-gray-500">/100</span>
-                        </div>
+                        
+                        @if (summary.total > 0) {
+                          <div class="text-xs text-gray-600 space-y-1 mb-2">
+                            <div class="flex items-center justify-between">
+                              <span>Evaluaciones presentadas:</span>
+                              <span class="font-medium">{{ summary.total }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <span>Aprobadas:</span>
+                              <span class="font-medium text-green-600">{{ summary.passed }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <span>Promedio automático:</span>
+                              <span class="font-medium text-indigo-600">{{ summary.average }}%</span>
+                            </div>
+                          </div>
+                          
+                          <details class="mt-2">
+                            <summary class="text-xs text-indigo-600 hover:text-indigo-700 cursor-pointer font-medium">
+                              Ver detalle de evaluaciones
+                            </summary>
+                            <div class="mt-2 space-y-2 pl-2 border-l-2 border-indigo-200">
+                              @for (submission of getActiveStudentSubmissions(enrollment.studentId); track submission.id) {
+                                @let quiz = getQuizBySubmission(submission);
+                                <div class="text-xs p-2 bg-gray-50 rounded">
+                                  <div class="font-medium text-gray-900">{{ quiz?.title || 'Evaluación' }}</div>
+                                  <div class="flex items-center justify-between mt-1">
+                                    <span class="text-gray-600">{{ submission.percentage }}%</span>
+                                    @if (submission.isPassed) {
+                                      <span class="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">Aprobada</span>
+                                    } @else {
+                                      <span class="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs">No aprobada</span>
+                                    }
+                                  </div>
+                                  <div class="text-gray-500 mt-1">
+                                    {{ submission.submittedAt | date: 'short' }}
+                                  </div>
+                                </div>
+                              }
+                            </div>
+                          </details>
+                        } @else {
+                          <p class="text-xs text-gray-500 italic">No ha presentado evaluaciones aún</p>
+                        }
                       </div>
                     }
                   </div>
@@ -326,11 +367,11 @@
             <textarea
               formControlName="content"
               rows="10"
-              placeholder="Puedes usar Markdown para formatear el contenido:&#10;&#10;## Subtítulos&#10;**Negrita** o *cursiva*&#10;- Listas&#10;1. Numeradas&#10;&#10;Ejemplo:&#10;## Introducción&#10;Este es el **contenido** de la lección con formato."
+              placeholder="Puedes usar Markdown para formatear el contenido:&#10;&#10;## Subtítulos&#10;**Negrita** o *cursiva*&#10;- Listas&#10;1. Numeradas&#10;&#10;Videos:&#10;https://www.youtube.com/watch?v=VIDEO_ID&#10;https://vimeo.com/VIDEO_ID&#10;&#10;Ejemplo:&#10;## Introducción&#10;Este es el **contenido** de la lección con formato.&#10;https://www.youtube.com/watch?v=dQw4w9WgXcQ"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
             ></textarea>
             <p class="text-xs text-gray-500 mt-1">
-              💡 Tip: Puedes usar encabezados (#), listas (-), negrita (**), y más. <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" class="text-indigo-600 hover:underline">Ver guía de Markdown</a>
+              💡 Tip: Puedes usar encabezados (#), listas (-), negrita (**), y más. También puedes incluir videos de YouTube o Vimeo simplemente pegando el enlace. <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" class="text-indigo-600 hover:underline">Ver guía de Markdown</a>
             </p>
           </div>
           <div class="mb-4">

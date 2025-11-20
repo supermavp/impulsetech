@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { CourseService, Course, Lesson, Quiz, QuizQuestion } from '../../services/course.service';
+import { CourseService, Course, Lesson, Quiz, QuizQuestion, QuizSubmission } from '../../services/course.service';
 import { MarkdownService } from '../../services/markdown.service';
 import { User } from '@angular/fire/auth';
 import { SafeHtml } from '@angular/platform-browser';
@@ -32,6 +32,8 @@ export class TeacherComponent implements OnInit, OnDestroy {
   selectedCourse = signal<Course | null>(null);
   enrollments = signal<any[]>([]);
   lessons = signal<Lesson[]>([]);
+  // Map de estudiante -> sus evaluaciones presentadas
+  studentSubmissions = signal<Map<string, QuizSubmission[]>>(new Map());
   
   showCreateCourse = signal(false);
   showCreateLesson = signal(false);
@@ -454,6 +456,18 @@ export class TeacherComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       ).subscribe(enrollments => {
         this.enrollments.set(enrollments);
+        // Cargar evaluaciones de cada estudiante
+        enrollments.forEach(enrollment => {
+          if (enrollment.studentId && course.id) {
+            this.courseService.getQuizSubmissionsByStudent$(course.id, enrollment.studentId).pipe(
+              takeUntil(this.destroy$)
+            ).subscribe(submissions => {
+              const currentMap = new Map(this.studentSubmissions());
+              currentMap.set(enrollment.studentId, submissions);
+              this.studentSubmissions.set(currentMap);
+            });
+          }
+        });
       });
       this.courseService.getLessonsByCourse$(course.id).pipe(
         takeUntil(this.destroy$)
@@ -468,32 +482,89 @@ export class TeacherComponent implements OnInit, OnDestroy {
     }
   }
 
-  async updateGrade(enrollmentId: string, grade: number | string) {
-    try {
-      const gradeNumber = typeof grade === 'string' ? parseFloat(grade) : grade;
-      if (isNaN(gradeNumber) || gradeNumber < 0 || gradeNumber > 100) {
-        return;
-      }
-      await this.courseService.updateGrade(enrollmentId, gradeNumber);
-      const course = this.selectedCourse();
-      if (course?.id) {
-        this.courseService.getEnrollmentsByCourse$(course.id).pipe(
-          takeUntil(this.destroy$)
-        ).subscribe(enrollments => {
-          this.enrollments.set(enrollments);
-        });
-      }
-    } catch (error) {
-      console.error('Error al actualizar calificación:', error);
+  /**
+   * Calcula la calificación automática basada en las evaluaciones presentadas
+   * Solo considera evaluaciones activas del curso actual
+   * @param studentId ID del estudiante
+   * @returns Calificación calculada (0-100) o null si no hay evaluaciones presentadas
+   */
+  calculateAutoGrade(studentId: string): number | null {
+    const submissions = this.studentSubmissions().get(studentId);
+    if (!submissions || submissions.length === 0) {
+      return null;
     }
+
+    // Filtrar solo evaluaciones activas del curso actual
+    const activeQuizzes = this.quizzes().filter(q => q.isActive);
+    const activeQuizIds = new Set(activeQuizzes.map(q => q.id));
+    const validSubmissions = submissions.filter(s => activeQuizIds.has(s.quizId));
+
+    if (validSubmissions.length === 0) {
+      return null;
+    }
+
+    // Calcular el promedio de porcentajes de las evaluaciones activas presentadas
+    const totalPercentage = validSubmissions.reduce((sum, submission) => {
+      return sum + (submission.percentage || 0);
+    }, 0);
+
+    const averagePercentage = Math.round(totalPercentage / validSubmissions.length);
+    return averagePercentage;
   }
-  
-  onGradeBlur(enrollmentId: string, event: Event) {
-    const target = event.target as HTMLInputElement;
-    const value = target.value;
-    if (value) {
-      this.updateGrade(enrollmentId, value);
+
+  /**
+   * Obtiene las evaluaciones presentadas de un estudiante
+   */
+  getStudentSubmissions(studentId: string): QuizSubmission[] {
+    return this.studentSubmissions().get(studentId) || [];
+  }
+
+  /**
+   * Obtiene el resumen de evaluaciones para un estudiante
+   * Solo considera evaluaciones activas del curso actual
+   */
+  getStudentQuizSummary(studentId: string): { total: number; passed: number; average: number } {
+    const submissions = this.getStudentSubmissions(studentId);
+    
+    // Filtrar solo evaluaciones activas del curso actual
+    const activeQuizzes = this.quizzes().filter(q => q.isActive);
+    const activeQuizIds = new Set(activeQuizzes.map(q => q.id));
+    const validSubmissions = submissions.filter(s => activeQuizIds.has(s.quizId));
+    
+    const total = validSubmissions.length;
+    const passed = validSubmissions.filter(s => s.isPassed).length;
+    const average = this.calculateAutoGrade(studentId) || 0;
+    
+    return { total, passed, average };
+  }
+
+  /**
+   * Obtiene las evaluaciones presentadas activas de un estudiante
+   */
+  getActiveStudentSubmissions(studentId: string): QuizSubmission[] {
+    const submissions = this.getStudentSubmissions(studentId);
+    const activeQuizzes = this.quizzes().filter(q => q.isActive);
+    const activeQuizIds = new Set(activeQuizzes.map(q => q.id));
+    return submissions.filter(s => activeQuizIds.has(s.quizId));
+  }
+
+  /**
+   * Obtiene la calificación de un estudiante (automática si existe, manual si no)
+   */
+  getStudentGrade(enrollment: any): number | null {
+    // Si hay calificación manual, mostrarla
+    if (enrollment.grade !== undefined && enrollment.grade !== null) {
+      return enrollment.grade;
     }
+    // Si no, calcular la automática basada en evaluaciones
+    return this.calculateAutoGrade(enrollment.studentId);
+  }
+
+  /**
+   * Obtiene el quiz asociado a una submission
+   */
+  getQuizBySubmission(submission: QuizSubmission): Quiz | undefined {
+    return this.quizzes().find(q => q.id === submission.quizId);
   }
 
   async logout() {

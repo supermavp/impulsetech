@@ -139,6 +139,12 @@ export class StudentComponent implements OnInit, OnDestroy {
 
   async selectCourse(course: Course) {
     this.selectedCourse.set(course);
+    // Resetear el quiz seleccionado y submission al cambiar de curso
+    this.selectedQuiz.set(null);
+    this.currentQuizSubmission.set(null);
+    this.showQuiz.set(false);
+    this.showQuizResults.set(false);
+    
     const user = this.currentUser();
     if (course.id && user) {
       this.courseService.getLessonsByCourse$(course.id).pipe(
@@ -210,6 +216,8 @@ export class StudentComponent implements OnInit, OnDestroy {
     // Verificar si ya presentó la evaluación
     const existingSubmission = await this.courseService.getQuizSubmission(quiz.id!, user.uid);
     if (existingSubmission) {
+      // Establecer el quiz seleccionado para poder mostrar los resultados
+      this.selectedQuiz.set(quiz);
       this.currentQuizSubmission.set(existingSubmission);
       this.showQuizResults.set(true);
       return;
@@ -286,11 +294,28 @@ export class StudentComponent implements OnInit, OnDestroy {
   }
 
   closeQuiz() {
-    this.selectedQuiz.set(null);
+    // Solo cerrar los modales y resetear el formulario
+    // Mantener selectedQuiz y currentQuizSubmission para que el estudiante pueda volver a ver los resultados
+    // haciendo clic en "Ver Resultados" de nuevo
     this.showQuiz.set(false);
     this.showQuizResults.set(false);
-    this.currentQuizSubmission.set(null);
     this.quizForm = this.fb.group({});
+    
+    // Si no hay una submission guardada para el quiz actual, resetear todo
+    const quiz = this.selectedQuiz();
+    if (quiz) {
+      const submission = this.getQuizSubmission(quiz.id);
+      if (!submission) {
+        // No hay submission guardada, resetear todo
+        this.selectedQuiz.set(null);
+        this.currentQuizSubmission.set(null);
+      }
+      // Si hay submission, mantener selectedQuiz y currentQuizSubmission para poder verlos de nuevo
+    } else {
+      // No hay quiz seleccionado, resetear todo
+      this.selectedQuiz.set(null);
+      this.currentQuizSubmission.set(null);
+    }
   }
 
   getUserDisplayName(): string {
